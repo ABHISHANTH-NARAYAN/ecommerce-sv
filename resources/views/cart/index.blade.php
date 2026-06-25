@@ -141,7 +141,7 @@
         }
 
         /* =========================================
-           CUSTOM QUANTITY & CONTROLS (AUTO-UPDATE)
+           CUSTOM QUANTITY & CONTROLS
            ========================================= */
         .controls-wrapper {
             display: flex;
@@ -158,7 +158,7 @@
             border-radius: 12px;
             overflow: hidden;
             transition: 0.3s;
-            height: 42px; /* Fixed height to match remove button */
+            height: 42px;
         }
 
         .qty-wrapper:focus-within, .qty-wrapper:hover {
@@ -203,12 +203,11 @@
             margin: 0;
         }
 
-        /* Remove Button */
         .remove-btn {
             background: rgba(239, 68, 68, 0.1);
             border: 1px solid rgba(239, 68, 68, 0.3);
             color: #fca5a5;
-            height: 42px; /* Matches qty wrapper */
+            height: 42px;
             padding: 0 16px;
             border-radius: 12px;
             font-weight: 600;
@@ -238,10 +237,10 @@
         .subtotal small { color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; font-size: 11px; font-weight: 600; }
         .subtotal h3 { color: #34d399; font-size: 24px; margin-top: 5px; }
 
-        form { margin: 0; } /* Reset form margin */
+        form { margin: 0; }
 
         /* =========================================
-           SUMMARY SECTION
+           SUMMARY SECTION & COUPONS
            ========================================= */
         .summary {
             background: rgba(255, 255, 255, 0.03);
@@ -256,8 +255,38 @@
         }
 
         .summary h2 { font-size: 24px; margin-bottom: 25px; color: #ffffff; border-bottom: 1px solid rgba(255, 255, 255, 0.1); padding-bottom: 15px; }
-        .summary-row { display: flex; justify-content: space-between; margin-bottom: 15px; color: #d1d5db; font-size: 16px; }
+        .summary-row { display: flex; justify-content: space-between; margin-bottom: 15px; color: #d1d5db; font-size: 16px; align-items: center; }
         .total { font-size: 24px; color: #34d399; font-weight: 800; margin-top: 20px; padding-top: 20px; border-top: 1px dashed rgba(255, 255, 255, 0.15); }
+
+        .coupon-form { margin-top: 25px; display: flex; gap: 10px; border-top: 1px dashed rgba(255, 255, 255, 0.15); padding-top: 20px; }
+        .coupon-input {
+            flex-grow: 1;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: white;
+            padding: 14px 15px;
+            border-radius: 12px;
+            outline: none;
+            transition: 0.3s;
+        }
+        .coupon-input:focus { border-color: #3b82f6; background: rgba(255, 255, 255, 0.1); }
+        .coupon-input::placeholder { color: #9ca3af; }
+        
+        .coupon-btn {
+            background: rgba(59, 130, 246, 0.2);
+            color: #60a5fa;
+            border: 1px solid rgba(59, 130, 246, 0.4);
+            padding: 0 20px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 700;
+            transition: 0.3s;
+        }
+        .coupon-btn:hover { background: rgba(59, 130, 246, 0.4); color: white; }
+
+        .alert { padding: 12px 15px; border-radius: 12px; margin-bottom: 20px; font-size: 14px; font-weight: 500; }
+        .alert-success { background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); color: #34d399; }
+        .alert-error { background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); color: #fca5a5; }
 
         .action-btn {
             display: block;
@@ -314,9 +343,7 @@
         }
         .back-btn:hover { transform: translateY(-3px); box-shadow: 0 15px 35px rgba(59, 130, 246, 0.4); }
 
-        /* =========================================
-           RESPONSIVE DESIGN
-           ========================================= */
+        /* RESPONSIVE */
         @media(max-width: 900px) {
             .container { grid-template-columns: 1fr; }
             .item { flex-direction: column; text-align: center; gap: 15px; }
@@ -340,7 +367,7 @@
 
     @php
         $cart = session('cart', []);
-        $total = 0;
+        $cartSubtotal = 0;
     @endphp
 
     @if(count($cart) == 0)
@@ -357,8 +384,8 @@
             <div class="cart-items">
                 @foreach($cart as $id => $item)
                     @php
-                        $subtotal = $item['price'] * $item['quantity'];
-                        $total += $subtotal;
+                        $itemSubtotal = $item['price'] * $item['quantity'];
+                        $cartSubtotal += $itemSubtotal;
                     @endphp
 
                     <div class="item">
@@ -391,24 +418,84 @@
 
                         <div class="subtotal">
                             <small>Subtotal</small>
-                            <h3>₹{{ number_format($subtotal, 2) }}</h3>
+                            <h3>₹{{ number_format($itemSubtotal, 2) }}</h3>
                         </div>
                     </div>
                 @endforeach
             </div>
 
+            @php
+                // Calculate Final Totals considering the coupon
+                $discount = session()->has('coupon') ? session('coupon')['discount'] : 0;
+                $finalTotal = max(0, $cartSubtotal - $discount);
+            @endphp
+
             <div class="summary">
                 <h2>📦 Order Summary</h2>
+
+                @if(session('success'))
+                    <div class="alert alert-success">✓ {{ session('success') }}</div>
+                @endif
+                @if(session('error'))
+                    <div class="alert alert-error">⚠ {{ session('error') }}</div>
+                @endif
 
                 <div class="summary-row">
                     <span>Total Items</span>
                     <span>{{ count($cart) }}</span>
                 </div>
 
+                <div class="summary-row">
+                    <span>Subtotal</span>
+                    <span>₹{{ number_format($cartSubtotal, 2) }}</span>
+                </div>
+
+                @if(session()->has('coupon'))
+                    <div style="margin-top: 15px; margin-bottom: 15px; background: rgba(52, 211, 153, 0.05); border: 1px dashed rgba(52, 211, 153, 0.3); padding: 16px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <div style="color: #34d399; font-weight: 700; font-size: 15px; display: flex; align-items: center; gap: 6px;">
+                                <span>✓</span> {{ session('coupon')['code'] }} Applied
+                            </div>
+                            <div style="color: #94a3b8; font-size: 13px; margin-top: 4px;">
+                                You are saving ₹{{ number_format($discount, 2) }}
+                            </div>
+                        </div>
+                        
+                        <a href="{{ route('cart.remove-coupon') }}" 
+                           style="background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.2); padding: 8px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; text-decoration: none; transition: all 0.2s ease;"
+                           onmouseover="this.style.background='rgba(239, 68, 68, 0.2)'; this.style.borderColor='#ef4444'; this.style.color='#ffffff';"
+                           onmouseout="this.style.background='rgba(239, 68, 68, 0.1)'; this.style.borderColor='rgba(239, 68, 68, 0.2)'; this.style.color='#ef4444';">
+                            Remove
+                        </a>
+                    </div>
+                @endif
+
                 <div class="summary-row total">
                     <span>Total Amount</span>
-                    <span>₹{{ number_format($total, 2) }}</span>
+                    <span>₹{{ number_format($finalTotal, 2) }}</span>
                 </div>
+
+                @if(!session()->has('coupon'))
+                    <div style="margin-top: 25px; border-top: 1px dashed rgba(255, 255, 255, 0.15); padding-top: 20px;">
+                        <p style="font-size: 13px; color: #9ca3af; margin-bottom: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">
+                            Available Coupons
+                        </p>
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 15px;">
+                            <button type="button" class="auto-coupon" data-code="SAVE10" style="background: rgba(255,255,255,0.05); border: 1px dashed rgba(255,255,255,0.3); color: #fff; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; transition: 0.2s;">
+                                SAVE10 (-₹100)
+                            </button>
+                            <button type="button" class="auto-coupon" data-code="WELCOME20" style="background: rgba(255,255,255,0.05); border: 1px dashed rgba(255,255,255,0.3); color: #fff; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; transition: 0.2s;">
+                                WELCOME20 (20% OFF)
+                            </button>
+                        </div>
+
+                        <form action="{{ route('cart.apply-coupon') }}" method="POST" class="coupon-form" style="margin-top: 0; border-top: none; padding-top: 0;">
+                            @csrf
+                            <input type="text" name="coupon_code" id="coupon-input-field" placeholder="Enter coupon code" required class="coupon-input">
+                            <button type="submit" class="coupon-btn">Apply</button>
+                        </form>
+                    </div>
+                @endif
 
                 <a href="{{ route('checkout') }}" class="action-btn checkout-btn">
                     Proceed to Checkout
@@ -436,7 +523,7 @@
                 let currentVal = parseInt($input.val());
                 if (!isNaN(currentVal)) {
                     $input.val(currentVal + 1);
-                    $(this).closest('form').submit(); // Submits instantly
+                    $(this).closest('form').submit(); 
                 }
             });
 
@@ -445,9 +532,9 @@
                 e.preventDefault();
                 let $input = $(this).siblings('.qty-input');
                 let currentVal = parseInt($input.val());
-                if (!isNaN(currentVal) && currentVal > 1) { // Prevents going below 1
+                if (!isNaN(currentVal) && currentVal > 1) { 
                     $input.val(currentVal - 1);
-                    $(this).closest('form').submit(); // Submits instantly
+                    $(this).closest('form').submit(); 
                 }
             });
 
@@ -455,9 +542,21 @@
             $('.qty-input').on('change', function() {
                 let currentVal = parseInt($(this).val());
                 if (isNaN(currentVal) || currentVal < 1) {
-                    $(this).val(1); // Default back to 1 if they type gibberish or 0
+                    $(this).val(1); 
                 }
                 $(this).closest('form').submit();
+            });
+            
+            // Auto-fill coupon code when an available coupon badge is clicked
+            $('.auto-coupon').on('click', function() {
+                let code = $(this).data('code');
+                $('#coupon-input-field').val(code);
+                
+                // Add a brief highlight effect to the input box
+                $('#coupon-input-field').css('border-color', '#3b82f6');
+                setTimeout(() => {
+                    $('#coupon-input-field').css('border-color', 'rgba(255, 255, 255, 0.15)');
+                }, 500);
             });
         });
     </script>
